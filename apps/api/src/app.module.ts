@@ -1,10 +1,11 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { HealthController } from './health.controller.js';
 import { RequestIdMiddleware } from './common/request-id.middleware.js';
 import { ErrorEnvelopeFilter } from './common/error-envelope.filter.js';
 import { FakeLlmProvider } from './rag/llm/fake.provider.js';
+import { AuthModule } from './auth/auth.module.js';
 
 @Module({
   imports: [
@@ -14,12 +15,17 @@ import { FakeLlmProvider } from './rag/llm/fake.provider.js';
         limit: 100,
       },
     ]),
+    AuthModule,
   ],
   controllers: [HealthController],
   providers: [
     {
       provide: APP_FILTER,
       useClass: ErrorEnvelopeFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
     FakeLlmProvider,
   ],
