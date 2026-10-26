@@ -1,2 +1,4 @@
-// packages/shared/src/index.ts
-// Authoritative shared exports (enums, error-codes, copy, limits)
+export * from './enums.js';
+export * from './error-codes.js';
+export * from './copy.js';
+export * from './limits.js';
