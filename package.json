@@ -1,0 +1,16 @@
+{
+  "name": "xs-rag",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r run dev",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "test:e2e": "pnpm -r run test:e2e",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "db:migrate": "pnpm -F @xs-rag/api exec prisma migrate dev",
+    "seed": "pnpm -F @xs-rag/api run seed"
+  },
+  "packageManager": "pnpm@9.15.9"
+}
