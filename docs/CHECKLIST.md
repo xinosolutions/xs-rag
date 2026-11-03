@@ -2,7 +2,7 @@
 
 - [x] P1 `prisma migrate dev` applied incl. `add_search_indexes`; error filter and `ZodPipe` in place; shared package exports enums, error codes, copy, limits
 - [x] P1 fake providers working (`LLM_PROVIDER=fake`), refuses production
-- [ ] P2 Auth endpoints + mail service; T-01..T-08 green
+- [x] P2 Auth endpoints + mail service; T-01..T-08 green
 - [ ] P3 Workspaces, members, invitations, settings, model catalog; T-09..T-20 green
 - [ ] P4 Documents API with permitted filter used for list/detail; SSE events; T-21..T-31 green
 - [ ] P5 Four extractors, chunker, embedder, recovery, parallel-safe claim; T-32..T-37 green
