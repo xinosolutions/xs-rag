@@ -7,6 +7,7 @@ import { ErrorEnvelopeFilter } from './common/error-envelope.filter.js';
 import { FakeLlmProvider } from './rag/llm/fake.provider.js';
 import { AuthModule } from './auth/auth.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
+import { DocumentsModule } from './documents/documents.module.js';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module.js';
     ]),
     AuthModule,
     WorkspacesModule,
+    DocumentsModule,
   ],
   controllers: [HealthController],
   providers: [

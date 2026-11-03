@@ -75,6 +75,13 @@ export class ErrorEnvelopeFilter implements ExceptionFilter {
         code = this.mapStatusToErrorCode(status);
         message = typeof res === 'string' ? res : exception.message;
       }
+    } else if (
+      (exception as any)?.name === 'MulterError' &&
+      (exception as any)?.code === 'LIMIT_FILE_SIZE'
+    ) {
+      status = HttpStatus.PAYLOAD_TOO_LARGE;
+      code = ErrorCode.FILE_TOO_LARGE;
+      message = 'File is too large (max 20 MB)';
     } else {
       this.logger.error(`Unhandled error [${requestId}]:`, exception);
       status = HttpStatus.INTERNAL_SERVER_ERROR;
