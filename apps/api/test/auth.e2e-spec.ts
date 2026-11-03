@@ -1,19 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { getStorageToken, ThrottlerStorage } from '@nestjs/throttler';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/common/prisma.service.js';
 import { MailService } from '../src/auth/mail.service.js';
-import { TokenService } from '../src/auth/token.service.js';
 import { truncateAllTables } from './helpers/db.js';
 
 describe('Phase 2: Authentication & Mail (T-01..T-08)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let mailService: MailService;
-  let tokenService: TokenService;
+  let throttlerStorage: ThrottlerStorage;
 
   beforeAll(async () => {
     process.env.NODE_ENV = 'test';
@@ -21,6 +21,9 @@ describe('Phase 2: Authentication & Mail (T-01..T-08)', () => {
     process.env.JWT_SECRET = 'super-secret-jwt-secret-min-32-chars-length';
     process.env.IP_HASH_SALT = 'test-salt-string';
     process.env.THROTTLE_AUTH_PER_MIN = '10';
+    if (process.env.TEST_DATABASE_URL) {
+      process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+    }
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -32,7 +35,7 @@ describe('Phase 2: Authentication & Mail (T-01..T-08)', () => {
 
     prisma = app.get(PrismaService);
     mailService = app.get(MailService);
-    tokenService = app.get(TokenService);
+    throttlerStorage = app.get(getStorageToken());
   });
 
   afterAll(async () => {
@@ -42,6 +45,9 @@ describe('Phase 2: Authentication & Mail (T-01..T-08)', () => {
   beforeEach(async () => {
     mailService.clearRecordedMails();
     await truncateAllTables(prisma);
+    (throttlerStorage as any)._storage?.clear?.();
+    (throttlerStorage as any).storage?.clear?.();
+    (throttlerStorage as any).hitExpirations?.clear?.();
   });
 
   it('T-01 AC-01: register stores argon2id hash, lowercases email, sets cookies', async () => {

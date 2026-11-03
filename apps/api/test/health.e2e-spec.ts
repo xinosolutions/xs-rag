@@ -12,7 +12,7 @@ describe('T-00: Health & Error Envelope Smoke Test', () => {
     process.env.LLM_PROVIDER = 'fake';
     process.env.JWT_SECRET = 'super-secret-jwt-secret-min-32-chars-length';
     process.env.IP_HASH_SALT = 'test-salt';
-    process.env.DATABASE_URL = 'postgresql://xs:xs_dev@localhost:5432/xs_rag_test';
+    process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://xs:xs_dev@localhost:5432/xs_rag_test';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
