@@ -6,6 +6,7 @@ import { RequestIdMiddleware } from './common/request-id.middleware.js';
 import { ErrorEnvelopeFilter } from './common/error-envelope.filter.js';
 import { FakeLlmProvider } from './rag/llm/fake.provider.js';
 import { AuthModule } from './auth/auth.module.js';
+import { WorkspacesModule } from './workspaces/workspaces.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthModule } from './auth/auth.module.js';
       },
     ]),
     AuthModule,
+    WorkspacesModule,
   ],
   controllers: [HealthController],
   providers: [

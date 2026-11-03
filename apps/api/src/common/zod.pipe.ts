@@ -7,7 +7,7 @@ import { ApiException } from './error-envelope.filter.js';
 export class ZodPipe implements PipeTransform {
   constructor(private readonly schema: ZodSchema) {}
 
-  transform(value: unknown, metadata: ArgumentMetadata): unknown {
+  transform(value: unknown, _metadata: ArgumentMetadata): unknown {
     const result = this.schema.safeParse(value);
     if (!result.success) {
       const error = result.error as ZodError;
