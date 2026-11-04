@@ -1,11 +1,30 @@
 import { Injectable } from '@nestjs/common';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { LlmProvider, LlmCompletionParams } from './llm.provider.js';
-import { createHash } from 'crypto';
 
 @Injectable()
 export class FakeLlmProvider implements LlmProvider {
+  private aliases: Record<string, string> = {};
+
+  constructor() {
+    this.loadAliases();
+  }
+
+  private loadAliases(): void {
+    try {
+      const aliasPath = path.resolve('test/fixtures/embedding-aliases.json');
+      if (fs.existsSync(aliasPath)) {
+        const content = fs.readFileSync(aliasPath, 'utf-8');
+        this.aliases = JSON.parse(content);
+      }
+    } catch {
+      this.aliases = {};
+    }
+  }
+
   async embed(texts: string[]): Promise<number[][]> {
-    return texts.map((text) => this.generateDeterministicVector(text, 1536));
+    return texts.map((text) => this.generateBagOfWordsVector(text, 1536));
   }
 
   async *streamChat(params: LlmCompletionParams): AsyncIterable<string> {
@@ -16,11 +35,21 @@ export class FakeLlmProvider implements LlmProvider {
     }
 
     if (lastMessage.includes('__NO_ANSWER__')) {
-      yield "I don't know based on the documents available to you.";
+      yield '[[NO_ANSWER]]';
       return;
     }
 
-    const tokens = ['Based ', 'on the ', 'policy, ', 'here is ', 'the answer [[doc:1]].'];
+    if (lastMessage.includes('__NO_CITATION__')) {
+      yield 'Answer without citations.';
+      return;
+    }
+
+    if (lastMessage.includes('__BAD_MARKER__')) {
+      yield 'Text [9] and [1].';
+      return;
+    }
+
+    const tokens = ['Answer ', 'based on the ', 'documents [1].'];
 
     for (const token of tokens) {
       if (params.abortSignal?.aborted) {
@@ -28,29 +57,45 @@ export class FakeLlmProvider implements LlmProvider {
       }
 
       if (lastMessage.includes('__SLOW__')) {
-        await new Promise((resolve) => setTimeout(resolve, 80));
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 10));
       }
 
       yield token;
     }
   }
 
-  private generateDeterministicVector(text: string, dim: number): number[] {
-    const hash = createHash('sha256').update(text).digest();
-    const vec: number[] = new Array(dim);
-    let norm = 0;
+  private hashWord(word: string, dim: number): number {
+    let hash = 0;
+    for (let i = 0; i < word.length; i++) {
+      hash = (hash * 31 + word.charCodeAt(i)) >>> 0;
+    }
+    return hash % dim;
+  }
 
-    for (let i = 0; i < dim; i++) {
-      const byte = hash[i % hash.length]!;
-      const val = (byte / 255.0) * 2 - 1; // Range -1..1
-      vec[i] = val;
-      norm += val * val;
+  private generateBagOfWordsVector(text: string, dim: number): number[] {
+    const words = text.toLowerCase().match(/[a-z0-9_-]+/g) || [];
+    const vec: number[] = Array.from({ length: dim }, () => 0);
+
+    for (const word of words) {
+      const canonical = this.aliases[word] || word;
+      const slot = this.hashWord(canonical, dim);
+      vec[slot] += 1;
     }
 
-    // Normalize to unit vector for cosine distance
-    norm = Math.sqrt(norm);
+    let norm = 0;
     for (let i = 0; i < dim; i++) {
-      vec[i] = vec[i]! / (norm || 1);
+      norm += vec[i] * vec[i];
+    }
+    norm = Math.sqrt(norm);
+
+    if (norm > 0) {
+      for (let i = 0; i < dim; i++) {
+        vec[i] = vec[i] / norm;
+      }
+    } else {
+      vec[0] = 1;
     }
 
     return vec;

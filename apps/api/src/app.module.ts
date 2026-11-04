@@ -8,6 +8,7 @@ import { FakeLlmProvider } from './rag/llm/fake.provider.js';
 import { AuthModule } from './auth/auth.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
+import { IngestionModule } from './ingestion/ingestion.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { DocumentsModule } from './documents/documents.module.js';
     AuthModule,
     WorkspacesModule,
     DocumentsModule,
+    IngestionModule,
   ],
   controllers: [HealthController],
   providers: [
