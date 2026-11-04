@@ -12,9 +12,12 @@ export async function insertTestChunk(
     heading?: string | null;
     headingPath?: string | null;
     tokenCount?: number;
+    embedding?: number[];
   },
 ): Promise<void> {
-  const dummyEmbedding = `[${Array.from({ length: 1536 }, () => 0).join(',')}]`;
+  const embeddingStr = params.embedding
+    ? `[${params.embedding.join(',')}]`
+    : `[${Array.from({ length: 1536 }, () => 0).join(',')}]`;
   const tokenCount = params.tokenCount ?? Math.ceil(params.text.length / 4);
 
   await prisma.$executeRawUnsafe(
@@ -29,6 +32,6 @@ export async function insertTestChunk(
     params.heading ?? null,
     params.headingPath ?? null,
     tokenCount,
-    dummyEmbedding,
+    embeddingStr,
   );
 }

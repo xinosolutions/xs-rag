@@ -9,6 +9,8 @@ import { AuthModule } from './auth/auth.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
 import { IngestionModule } from './ingestion/ingestion.module.js';
+import { RagModule } from './rag/rag.module.js';
+import { ChatsModule } from './chats/chats.module.js';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { IngestionModule } from './ingestion/ingestion.module.js';
     WorkspacesModule,
     DocumentsModule,
     IngestionModule,
+    RagModule,
+    ChatsModule,
   ],
   controllers: [HealthController],
   providers: [
