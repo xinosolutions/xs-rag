@@ -59,7 +59,7 @@ export interface AskStreamSink {
 
 export interface AskOptions {
   principal: Principal;
-  chatId: string;
+  chatId?: string;
   question: string;
   sink?: AskStreamSink;
   abortSignal?: AbortSignal;
@@ -79,6 +79,9 @@ export interface AskResult {
     heading?: string | null;
     snippet?: string | null;
   }>;
+  retrievedDocumentIds?: string[];
+  retrievedPassages?: RetrievedPassage[];
+  costMicros?: number;
 }
 
 @Injectable()
@@ -126,49 +129,70 @@ export class RagService {
       );
     }
 
-    const chat = await this.prisma.chat.findUnique({
-      where: { id: chatId },
-    });
+    let modelId = 'claude-sonnet-5-5';
+    let chat: any = null;
 
-    if (!chat || chat.workspaceId !== principal.workspaceId) {
-      throw new ApiException(
-        ErrorCode.CHAT_NOT_FOUND,
-        'Chat not found',
-        HttpStatus.NOT_FOUND,
-      );
+    let targetChatId = '';
+
+    if (persist) {
+      if (!chatId) {
+        throw new ApiException(
+          ErrorCode.VALIDATION_FAILED,
+          'chatId is required when persist is true',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      targetChatId = chatId;
+
+      chat = await this.prisma.chat.findUnique({
+        where: { id: targetChatId },
+      });
+
+      if (!chat || chat.workspaceId !== principal.workspaceId) {
+        throw new ApiException(
+          ErrorCode.CHAT_NOT_FOUND,
+          'Chat not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (principal.type === PrincipalType.USER && chat.userId !== principal.userId) {
+        throw new ApiException(
+          ErrorCode.CHAT_NOT_FOUND,
+          'Chat not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (
+        (principal.type === PrincipalType.VISITOR || principal.type === PrincipalType.WIDGET) &&
+        chat.visitorId !== principal.visitorId
+      ) {
+        throw new ApiException(
+          ErrorCode.CHAT_NOT_FOUND,
+          'Chat not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (principal.type === PrincipalType.API_KEY && chat.apiKeyId !== principal.apiKeyId) {
+        throw new ApiException(
+          ErrorCode.CHAT_NOT_FOUND,
+          'Chat not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const workspace = await this.prisma.workspace.findUnique({
+        where: { id: chat.workspaceId },
+      });
+      modelId = workspace?.modelId || 'claude-sonnet-5-5';
+    } else {
+      const workspace = await this.prisma.workspace.findUnique({
+        where: { id: principal.workspaceId },
+      });
+      modelId = workspace?.modelId || 'claude-sonnet-5-5';
     }
-
-    if (principal.type === PrincipalType.USER && chat.userId !== principal.userId) {
-      throw new ApiException(
-        ErrorCode.CHAT_NOT_FOUND,
-        'Chat not found',
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (
-      (principal.type === PrincipalType.VISITOR || principal.type === PrincipalType.WIDGET) &&
-      chat.visitorId !== principal.visitorId
-    ) {
-      throw new ApiException(
-        ErrorCode.CHAT_NOT_FOUND,
-        'Chat not found',
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (principal.type === PrincipalType.API_KEY && chat.apiKeyId !== principal.apiKeyId) {
-      throw new ApiException(
-        ErrorCode.CHAT_NOT_FOUND,
-        'Chat not found',
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    const workspace = await this.prisma.workspace.findUnique({
-      where: { id: chat.workspaceId },
-    });
-    const modelId = workspace?.modelId || 'claude-sonnet-5-5';
 
     const startTime = Date.now();
     let firstTokenMs: number | null = null;
@@ -279,7 +303,7 @@ export class RagService {
 
             const userMsg = await tx.message.create({
               data: {
-                chatId,
+                chatId: targetChatId,
                 workspaceId: chat.workspaceId,
                 role: MessageRole.USER,
                 content: trimmedQuestion,
@@ -289,7 +313,7 @@ export class RagService {
 
             const assistantMsg = await tx.message.create({
               data: {
-                chatId,
+                chatId: targetChatId,
                 workspaceId: chat.workspaceId,
                 role: MessageRole.ASSISTANT,
                 content: '',
@@ -325,7 +349,7 @@ export class RagService {
       } else {
         const userMsg = await this.prisma.message.create({
           data: {
-            chatId,
+            chatId: targetChatId,
             workspaceId: chat.workspaceId,
             role: MessageRole.USER,
             content: trimmedQuestion,
@@ -337,7 +361,7 @@ export class RagService {
         try {
           const assistantMsg = await this.prisma.message.create({
             data: {
-              chatId,
+              chatId: targetChatId,
               workspaceId: chat.workspaceId,
               role: MessageRole.ASSISTANT,
               content: '',
@@ -363,7 +387,7 @@ export class RagService {
       }
 
       sink?.writeMeta({
-        chatId,
+        chatId: targetChatId,
         userMessageId,
         messageId: assistantMessageId,
         modelId,
@@ -376,15 +400,18 @@ export class RagService {
     let condensePromptTokens = 0;
     let condenseCompletionTokens = 0;
 
-    const historyMessages = await this.prisma.message.findMany({
-      where: {
-        chatId,
-        status: MessageStatus.COMPLETE,
-        ...(userMessageId ? { id: { notIn: [userMessageId, assistantMessageId] } } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 6,
-    });
+    const historyMessages =
+      persist && chatId
+        ? await this.prisma.message.findMany({
+            where: {
+              chatId,
+              status: MessageStatus.COMPLETE,
+              ...(userMessageId ? { id: { notIn: [userMessageId, assistantMessageId] } } : {}),
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 6,
+          })
+        : [];
     historyMessages.reverse();
 
     if (historyMessages.length > 0) {
@@ -451,7 +478,11 @@ export class RagService {
             totalMs,
           },
         });
-        await this.updateChatTitle(chatId, trimmedQuestion);
+        if (chatId) {
+          if (chatId) {
+          await this.updateChatTitle(chatId, trimmedQuestion);
+        }
+        }
       }
 
       sink?.writeCitations({
@@ -466,11 +497,14 @@ export class RagService {
       });
 
       return {
-        chatId,
+        chatId: chatId || '',
         messageId: assistantMessageId,
         content: LockedCopy.NO_ANSWER,
         outcome: AnswerOutcome.UNANSWERED,
         citations: [],
+        retrievedDocumentIds: [],
+        retrievedPassages: [],
+        costMicros,
       };
     }
 
@@ -605,7 +639,9 @@ export class RagService {
             totalMs,
           },
         });
-        await this.updateChatTitle(chatId, trimmedQuestion);
+        if (chatId) {
+          await this.updateChatTitle(chatId, trimmedQuestion);
+        }
       }
       return;
     }
@@ -638,7 +674,9 @@ export class RagService {
             totalMs,
           },
         });
-        await this.updateChatTitle(chatId, trimmedQuestion);
+        if (chatId) {
+          await this.updateChatTitle(chatId, trimmedQuestion);
+        }
       }
 
       sink?.writeCitations({
@@ -653,11 +691,14 @@ export class RagService {
       });
 
       return {
-        chatId,
+        chatId: chatId || '',
         messageId: assistantMessageId,
         content: LockedCopy.NO_ANSWER,
         outcome: AnswerOutcome.UNANSWERED,
         citations: [],
+        retrievedDocumentIds: Array.from(new Set(retrieval.passages.map((p) => p.documentId))),
+        retrievedPassages: retrieval.passages,
+        costMicros,
       };
     }
 
@@ -695,7 +736,9 @@ export class RagService {
             totalMs,
           },
         });
-        await this.updateChatTitle(chatId, trimmedQuestion);
+        if (chatId) {
+          await this.updateChatTitle(chatId, trimmedQuestion);
+        }
       }
 
       sink?.writeCitations({
@@ -710,11 +753,14 @@ export class RagService {
       });
 
       return {
-        chatId,
+        chatId: chatId || '',
         messageId: assistantMessageId,
         content: LockedCopy.NO_ANSWER,
         outcome: AnswerOutcome.UNANSWERED,
         citations: [],
+        retrievedDocumentIds: Array.from(new Set(retrieval.passages.map((p) => p.documentId))),
+        retrievedPassages: retrieval.passages,
+        costMicros,
       };
     }
 
@@ -749,7 +795,9 @@ export class RagService {
           totalMs,
         },
       });
-      await this.updateChatTitle(chatId, trimmedQuestion);
+      if (chatId) {
+        await this.updateChatTitle(chatId, trimmedQuestion);
+      }
     } else {
       persistedCitations = validIndices.map((idx) => {
         const p = retrieval.passages[idx - 1];
@@ -776,11 +824,14 @@ export class RagService {
     });
 
     return {
-      chatId,
+      chatId: chatId || '',
       messageId: assistantMessageId,
       content: cleanedContent,
       outcome: AnswerOutcome.ANSWERED,
       citations: persistedCitations,
+      retrievedDocumentIds: Array.from(new Set(retrieval.passages.map((p) => p.documentId))),
+      retrievedPassages: retrieval.passages,
+      costMicros,
     };
   }
 

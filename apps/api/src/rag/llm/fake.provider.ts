@@ -18,6 +18,8 @@ export class FakeLlmProvider implements LlmProvider {
   private aliases: Record<string, string> = {};
   public callCount = 0;
   public condenseCalls: FakeCondenseCall[] = [];
+  public scriptedAccuracyVerdicts: Array<'CORRECT' | 'INCORRECT'> = [];
+  public scriptedFaithfulnessClaims: Array<{ totalClaims: number; supportedClaims: number }> = [];
 
   constructor() {
     this.loadAliases();
@@ -26,6 +28,8 @@ export class FakeLlmProvider implements LlmProvider {
   public reset(): void {
     this.callCount = 0;
     this.condenseCalls = [];
+    this.scriptedAccuracyVerdicts = [];
+    this.scriptedFaithfulnessClaims = [];
   }
 
   private loadAliases(): void {
@@ -109,6 +113,36 @@ export class FakeLlmProvider implements LlmProvider {
       return;
     }
 
+    if (lastMessage.includes('__INCORRECT__')) {
+      const tokens = ['Answer __INCORRECT__ ', 'based on the ', 'documents [1].'];
+      for (const token of tokens) {
+        if (params.abortSignal?.aborted) throw new Error('Aborted');
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        yield token;
+      }
+      return;
+    }
+
+    if (lastMessage.includes('__UNSUPPORTED__')) {
+      const tokens = ['Answer __UNSUPPORTED__ ', 'based on the ', 'documents [1].'];
+      for (const token of tokens) {
+        if (params.abortSignal?.aborted) throw new Error('Aborted');
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        yield token;
+      }
+      return;
+    }
+
+    if (lastMessage.includes('__PARSE_FAIL__')) {
+      const tokens = ['Answer __PARSE_FAIL__ ', 'based on the ', 'documents [1].'];
+      for (const token of tokens) {
+        if (params.abortSignal?.aborted) throw new Error('Aborted');
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        yield token;
+      }
+      return;
+    }
+
     const tokens = ['Answer ', 'based on the ', 'documents [1].'];
 
     for (const token of tokens) {
@@ -127,6 +161,7 @@ export class FakeLlmProvider implements LlmProvider {
       (m) => m.role === 'system' && m.content.includes('Rewrite the final user question'),
     );
 
+    const fullText = params.messages.map((m) => m.content).join(' ');
     const lastMessage = params.messages[params.messages.length - 1]?.content || '';
 
     if (isCondense) {
@@ -151,6 +186,78 @@ export class FakeLlmProvider implements LlmProvider {
     }
 
     const promptTokens = Math.max(1, Math.ceil(JSON.stringify(params.messages).length / 4));
+
+    // Accuracy Judge check
+    const isAccuracyJudge = params.messages.some(
+      (m) =>
+        m.content.includes('verdict') ||
+        m.content.includes('EXPECTED ANSWER') ||
+        (m.role === 'system' && m.content.includes('CORRECT')),
+    );
+
+    if (isAccuracyJudge) {
+      if (this.scriptedAccuracyVerdicts.length > 0) {
+        const verdict = this.scriptedAccuracyVerdicts.shift()!;
+        return {
+          content: JSON.stringify({ verdict }),
+          promptTokens,
+          completionTokens: 10,
+        };
+      }
+
+      if (fullText.includes('__PARSE_FAIL__')) {
+        return {
+          content: 'This is not valid json for accuracy',
+          promptTokens,
+          completionTokens: 10,
+        };
+      }
+
+      const verdict = fullText.includes('__INCORRECT__') ? 'INCORRECT' : 'CORRECT';
+      return {
+        content: JSON.stringify({ verdict }),
+        promptTokens,
+        completionTokens: 10,
+      };
+    }
+
+    // Faithfulness Judge check
+    const isFaithfulnessJudge = params.messages.some(
+      (m) =>
+        m.content.includes('totalClaims') ||
+        m.content.includes('supportedClaims') ||
+        m.content.includes('RETRIEVED PASSAGES'),
+    );
+
+    if (isFaithfulnessJudge) {
+      if (this.scriptedFaithfulnessClaims.length > 0) {
+        const claims = this.scriptedFaithfulnessClaims.shift()!;
+        return {
+          content: JSON.stringify(claims),
+          promptTokens,
+          completionTokens: 15,
+        };
+      }
+
+      if (fullText.includes('__PARSE_FAIL__')) {
+        return {
+          content: 'This is not valid json for faithfulness',
+          promptTokens,
+          completionTokens: 10,
+        };
+      }
+
+      const claims = fullText.includes('__UNSUPPORTED__')
+        ? { totalClaims: 2, supportedClaims: 1 }
+        : { totalClaims: 2, supportedClaims: 2 };
+
+      return {
+        content: JSON.stringify(claims),
+        promptTokens,
+        completionTokens: 15,
+      };
+    }
+
     const completionTokens = Math.max(1, Math.ceil(lastMessage.length / 4));
 
     return {

@@ -13,6 +13,7 @@ import { RagModule } from './rag/rag.module.js';
 import { ChatsModule } from './chats/chats.module.js';
 import { ApiKeysModule } from './api-keys/api-keys.module.js';
 import { PublicModule } from './public/public.module.js';
+import { EvalModule } from './eval/eval.module.js';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PublicModule } from './public/public.module.js';
     ChatsModule,
     ApiKeysModule,
     PublicModule,
+    EvalModule,
   ],
   controllers: [HealthController],
   providers: [
