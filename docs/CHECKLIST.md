@@ -7,7 +7,7 @@
 - [x] P4 Documents API with permitted filter used for list/detail; SSE events; T-21..T-31 green
 - [x] P5 Four extractors, chunker, embedder, recovery, parallel-safe claim; T-32..T-37 green
 - [x] P6 Retrieval, `RagService.ask`, SSE messages, citations, chats, feedback, cost; T-38..T-57 green
-- [ ] P7 API keys, `/v1/ask`, public routes, allowances; T-58..T-68 (API part) green
+- [x] P7 API keys, `/v1/ask`, public routes, allowances; T-58..T-68 (API part) green
 - [ ] P8 Evaluation questions, runner, judge, scoring, compare, feedback to eval; T-69..T-75 green
 - [ ] P9 Analytics; T-76..T-78 green
 - [ ] P10 Sample documents + seed; T-79 green; `pnpm seed` idempotent

@@ -11,6 +11,8 @@ import { DocumentsModule } from './documents/documents.module.js';
 import { IngestionModule } from './ingestion/ingestion.module.js';
 import { RagModule } from './rag/rag.module.js';
 import { ChatsModule } from './chats/chats.module.js';
+import { ApiKeysModule } from './api-keys/api-keys.module.js';
+import { PublicModule } from './public/public.module.js';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { ChatsModule } from './chats/chats.module.js';
     IngestionModule,
     RagModule,
     ChatsModule,
+    ApiKeysModule,
+    PublicModule,
   ],
   controllers: [HealthController],
   providers: [

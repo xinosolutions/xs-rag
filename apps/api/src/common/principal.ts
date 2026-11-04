@@ -7,6 +7,7 @@ export interface Principal {
   apiKeyId?: string;
   workspaceId?: string;
   role?: WorkspaceRole;
+  ipHash?: string;
 }
 
 declare global {

@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import {
   AnswerOutcome,
   ErrorCode,
+  Limits,
   LockedCopy,
   MessageRole,
   MessageStatus,
@@ -173,44 +174,192 @@ export class RagService {
     let firstTokenMs: number | null = null;
     let userMessageId = '';
     let assistantMessageId = '';
+    let questionsRemaining: number | undefined = undefined;
 
     if (persist) {
-      const userMsg = await this.prisma.message.create({
-        data: {
-          chatId,
-          workspaceId: chat.workspaceId,
-          role: MessageRole.USER,
-          content: trimmedQuestion,
-          status: MessageStatus.COMPLETE,
-        },
-      });
-      userMessageId = userMsg.id;
+      if (
+        (principal.type === PrincipalType.VISITOR ||
+          principal.type === PrincipalType.WIDGET) &&
+        principal.visitorId
+      ) {
+        const isWidget = principal.type === PrincipalType.WIDGET;
+        try {
+          const res = await this.prisma.$transaction(async (tx) => {
+            await tx.$executeRaw(
+              Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${principal.visitorId}))`,
+            );
 
-      try {
-        const assistantMsg = await this.prisma.message.create({
+            const sessionLimit = isWidget
+              ? Limits.WIDGET_QUESTIONS_PER_SESSION_24H
+              : Limits.DEMO_QUESTIONS_PER_SESSION_24H;
+            const ipLimit = isWidget
+              ? Limits.WIDGET_QUESTIONS_PER_IP_24H
+              : Limits.DEMO_QUESTIONS_PER_IP_24H;
+
+            const copyMessage = isWidget
+              ? LockedCopy.WIDGET_LIMIT
+              : LockedCopy.DEMO_LIMIT;
+
+            const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+            const sessionMessages = await tx.message.findMany({
+              where: {
+                chat: { visitorId: principal.visitorId },
+                role: MessageRole.ASSISTANT,
+                status: {
+                  in: [
+                    MessageStatus.STREAMING,
+                    MessageStatus.COMPLETE,
+                    MessageStatus.STOPPED,
+                  ],
+                },
+                createdAt: { gte: since },
+              },
+              orderBy: { createdAt: 'asc' },
+            });
+
+            if (sessionMessages.length >= sessionLimit) {
+              const oldest = sessionMessages[0];
+              const resetsAt = new Date(
+                oldest.createdAt.getTime() + 24 * 60 * 60 * 1000,
+              ).toISOString();
+              throw new ApiException(
+                ErrorCode.DEMO_LIMIT_REACHED,
+                copyMessage,
+                HttpStatus.TOO_MANY_REQUESTS,
+                {
+                  limit: sessionLimit,
+                  scope: 'session',
+                  resetsAt,
+                },
+              );
+            }
+
+            let ipMessagesCount = 0;
+            if (principal.ipHash) {
+              const ipMessages = await tx.message.findMany({
+                where: {
+                  chat: { ipHash: principal.ipHash },
+                  role: MessageRole.ASSISTANT,
+                  status: {
+                    in: [
+                      MessageStatus.STREAMING,
+                      MessageStatus.COMPLETE,
+                      MessageStatus.STOPPED,
+                    ],
+                  },
+                  createdAt: { gte: since },
+                },
+                orderBy: { createdAt: 'asc' },
+              });
+
+              ipMessagesCount = ipMessages.length;
+
+              if (ipMessages.length >= ipLimit) {
+                const oldest = ipMessages[0];
+                const resetsAt = new Date(
+                  oldest.createdAt.getTime() + 24 * 60 * 60 * 1000,
+                ).toISOString();
+                throw new ApiException(
+                  ErrorCode.DEMO_LIMIT_REACHED,
+                  copyMessage,
+                  HttpStatus.TOO_MANY_REQUESTS,
+                  {
+                    limit: ipLimit,
+                    scope: 'ip',
+                    resetsAt,
+                  },
+                );
+              }
+            }
+
+            const sessionRemaining = sessionLimit - (sessionMessages.length + 1);
+            const ipRemaining = ipLimit - (ipMessagesCount + 1);
+            const rem = Math.max(0, Math.min(sessionRemaining, ipRemaining));
+
+            const userMsg = await tx.message.create({
+              data: {
+                chatId,
+                workspaceId: chat.workspaceId,
+                role: MessageRole.USER,
+                content: trimmedQuestion,
+                status: MessageStatus.COMPLETE,
+              },
+            });
+
+            const assistantMsg = await tx.message.create({
+              data: {
+                chatId,
+                workspaceId: chat.workspaceId,
+                role: MessageRole.ASSISTANT,
+                content: '',
+                status: MessageStatus.STREAMING,
+                question: trimmedQuestion,
+                modelId,
+              },
+            });
+
+            return {
+              userMessageId: userMsg.id,
+              assistantMessageId: assistantMsg.id,
+              questionsRemaining: rem,
+            };
+          });
+
+          userMessageId = res.userMessageId;
+          assistantMessageId = res.assistantMessageId;
+          questionsRemaining = res.questionsRemaining;
+        } catch (err: unknown) {
+          if (
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === 'P2002'
+          ) {
+            throw new ApiException(
+              ErrorCode.CHAT_BUSY,
+              'A message is already streaming in this chat',
+              HttpStatus.CONFLICT,
+            );
+          }
+          throw err;
+        }
+      } else {
+        const userMsg = await this.prisma.message.create({
           data: {
             chatId,
             workspaceId: chat.workspaceId,
-            role: MessageRole.ASSISTANT,
-            content: '',
-            status: MessageStatus.STREAMING,
-            question: trimmedQuestion,
-            modelId,
+            role: MessageRole.USER,
+            content: trimmedQuestion,
+            status: MessageStatus.COMPLETE,
           },
         });
-        assistantMessageId = assistantMsg.id;
-      } catch (err: unknown) {
-        if (
-          err instanceof Prisma.PrismaClientKnownRequestError &&
-          err.code === 'P2002'
-        ) {
-          throw new ApiException(
-            ErrorCode.CHAT_BUSY,
-            'A message is already streaming in this chat',
-            HttpStatus.CONFLICT,
-          );
+        userMessageId = userMsg.id;
+
+        try {
+          const assistantMsg = await this.prisma.message.create({
+            data: {
+              chatId,
+              workspaceId: chat.workspaceId,
+              role: MessageRole.ASSISTANT,
+              content: '',
+              status: MessageStatus.STREAMING,
+              question: trimmedQuestion,
+              modelId,
+            },
+          });
+          assistantMessageId = assistantMsg.id;
+        } catch (err: unknown) {
+          if (
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === 'P2002'
+          ) {
+            throw new ApiException(
+              ErrorCode.CHAT_BUSY,
+              'A message is already streaming in this chat',
+              HttpStatus.CONFLICT,
+            );
+          }
+          throw err;
         }
-        throw err;
       }
 
       sink?.writeMeta({
@@ -218,6 +367,7 @@ export class RagService {
         userMessageId,
         messageId: assistantMessageId,
         modelId,
+        ...(questionsRemaining !== undefined ? { questionsRemaining } : {}),
       });
     }
 
