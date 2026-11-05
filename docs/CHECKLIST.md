@@ -9,7 +9,7 @@
 - [x] P6 Retrieval, `RagService.ask`, SSE messages, citations, chats, feedback, cost; T-38..T-57 green
 - [x] P7 API keys, `/v1/ask`, public routes, allowances; T-58..T-68 (API part) green
 - [x] P8 Evaluation questions, runner, judge, scoring, compare, feedback to eval; T-69..T-75 green
-- [ ] P9 Analytics; T-76..T-78 green
+- [x] P9 Analytics; T-76..T-78 green
 - [ ] P10 Sample documents + seed; T-79 green; `pnpm seed` idempotent
 - [ ] P11 API client with refresh-retry, auth pages, shell, workspace picker, members, settings, guards; T-80..T-83 green
 - [ ] P12 Documents pages, chat, citation panel, history, feedback; T-84..T-87 green

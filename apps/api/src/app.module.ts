@@ -14,6 +14,7 @@ import { ChatsModule } from './chats/chats.module.js';
 import { ApiKeysModule } from './api-keys/api-keys.module.js';
 import { PublicModule } from './public/public.module.js';
 import { EvalModule } from './eval/eval.module.js';
+import { AnalyticsModule } from './analytics/analytics.module.js';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { EvalModule } from './eval/eval.module.js';
     ApiKeysModule,
     PublicModule,
     EvalModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
   providers: [
