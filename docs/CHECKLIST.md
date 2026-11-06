@@ -13,7 +13,7 @@
 - [x] P10 Sample documents + seed; T-79 green; `pnpm seed` idempotent
 - [x] P11 API client with refresh-retry, auth pages, shell, workspace picker, members, settings, guards; T-80..T-83 green
 - [x] P12 Documents pages, chat, citation panel, history, feedback; T-84..T-87 green
-- [ ] P13 Evaluation, feedback, analytics, API access pages; T-88..T-90 green
+- [x] P13 Evaluation, feedback, analytics, API access pages; T-88..T-90 green
 - [ ] P14 `/demo`, `/embed/[key]` + CSP middleware, `widget.js`, landing, README run guide; T-91 and web part of T-68 green
 - [ ] Golden path executed once against real providers; evaluation scores recorded in the repo README (PRD S-3)
 - [ ] "Must not exist" list in section 1 verified with a repository search

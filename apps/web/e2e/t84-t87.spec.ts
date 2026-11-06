@@ -16,6 +16,7 @@ test.describe('Phase 12: Web Documents and Chat (T-84..T-87)', () => {
     await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/w$/);
+    await page.waitForLoadState('networkidle');
 
     const wsInput = page.locator('input[id="workspace-name"]');
     await wsInput.waitFor({ state: 'visible' });
@@ -112,6 +113,7 @@ test.describe('Phase 12: Web Documents and Chat (T-84..T-87)', () => {
     await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/w$/);
+    await page.waitForLoadState('networkidle');
 
     const wsInput = page.locator('input[id="workspace-name"]');
     await wsInput.waitFor({ state: 'visible' });
@@ -185,6 +187,7 @@ test.describe('Phase 12: Web Documents and Chat (T-84..T-87)', () => {
     await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/w$/);
+    await page.waitForLoadState('networkidle');
 
     const wsInput = page.locator('input[id="workspace-name"]');
     await wsInput.waitFor({ state: 'visible' });
@@ -274,6 +277,7 @@ test.describe('Phase 12: Web Documents and Chat (T-84..T-87)', () => {
     await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/w$/);
+    await page.waitForLoadState('networkidle');
 
     const wsInput = page.locator('input[id="workspace-name"]');
     await wsInput.waitFor({ state: 'visible' });

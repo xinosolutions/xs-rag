@@ -27,4 +27,20 @@ export const queryKeys = {
   invitations: {
     preview: (token: string) => ['invitations', token] as const,
   },
+  eval: {
+    questions: (wid: string) => ['workspaces', wid, 'eval', 'questions'] as const,
+    runs: (wid: string) => ['workspaces', wid, 'eval', 'runs'] as const,
+    run: (wid: string, runId: string) => ['workspaces', wid, 'eval', 'runs', runId] as const,
+    compare: (wid: string, baseRunId: string, otherRunId: string) =>
+      ['workspaces', wid, 'eval', 'compare', { baseRunId, otherRunId }] as const,
+  },
+  feedback: {
+    list: (wid: string, rating?: string) => ['workspaces', wid, 'feedback', { rating }] as const,
+  },
+  analytics: {
+    data: (wid: string, period?: string) => ['workspaces', wid, 'analytics', { period }] as const,
+  },
+  apiKeys: {
+    list: (wid: string) => ['workspaces', wid, 'api-keys'] as const,
+  },
 } as const;
