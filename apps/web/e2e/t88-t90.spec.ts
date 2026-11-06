@@ -79,8 +79,9 @@ test.describe('Phase 13: Web Admin (T-88..T-90)', () => {
 
     // 4. Start second evaluation run
     await startRunBtn.click();
-    await expect(runStatus).toHaveText('COMPLETED', { timeout: 45000 });
-    await expect(runRows).toHaveCount(2, { timeout: 10000 });
+    await expect(runRows).toHaveCount(2, { timeout: 15000 });
+    await expect(startRunBtn).toContainText('Start Run', { timeout: 45000 });
+    await expect(runRows.first().locator('td').nth(1)).toHaveText('COMPLETED', { timeout: 15000 });
 
     // 5. Compare page shows deltas for two runs
     await page.locator('[data-testid="compare-runs-link"]').click();

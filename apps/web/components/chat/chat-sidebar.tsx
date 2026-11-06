@@ -18,9 +18,10 @@ export interface ChatSummary {
 interface ChatSidebarProps {
   wid: string;
   activeChatId?: string | null;
+  onNewChat?: () => void;
 }
 
-export function ChatSidebar({ wid, activeChatId }: ChatSidebarProps) {
+export function ChatSidebar({ wid, activeChatId, onNewChat }: ChatSidebarProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -51,7 +52,7 @@ export function ChatSidebar({ wid, activeChatId }: ChatSidebarProps) {
   return (
     <aside className="w-64 border-r border-gray-200 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-900/50 flex flex-col h-full shrink-0">
       <div className="p-3 border-b border-gray-200 dark:border-gray-800">
-        <Link href={`/w/${wid}/chat`}>
+        <Link href={`/w/${wid}/chat`} onClick={() => onNewChat?.()}>
           <Button variant="outline" size="sm" className="w-full flex items-center justify-center gap-1.5">
             <Plus className="h-4 w-4" />
             <span>New Chat</span>

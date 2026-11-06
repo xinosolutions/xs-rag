@@ -91,6 +91,12 @@ export function ChatContainer({ wid, chatId }: ChatContainerProps) {
     }
   };
 
+  const handleNewChat = () => {
+    setActiveChatId(undefined);
+    setStreamMessages([]);
+    window.history.pushState(null, '', `/w/${wid}/chat`);
+  };
+
   const handleSendMessage = async (question: string) => {
     if (isStreaming) return;
 
@@ -332,7 +338,7 @@ export function ChatContainer({ wid, chatId }: ChatContainerProps) {
   return (
     <div className="flex h-full flex-1 overflow-hidden">
       {/* Sidebar with chat history */}
-      <ChatSidebar wid={wid} activeChatId={activeChatId} />
+      <ChatSidebar wid={wid} activeChatId={activeChatId} onNewChat={handleNewChat} />
 
       {/* Main chat window */}
       <div className="flex flex-1 flex-col h-full min-w-0 bg-white dark:bg-gray-950">

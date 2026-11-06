@@ -30,10 +30,11 @@ export interface ChatMessage {
 }
 
 interface MessageListProps {
-  wid: string;
+  wid?: string;
   messages: ChatMessage[];
   isStreaming: boolean;
   onSelectCitation: (citationId: string) => void;
+  showFeedback?: boolean;
 }
 
 export function MessageList({
@@ -41,10 +42,12 @@ export function MessageList({
   messages,
   isStreaming,
   onSelectCitation,
+  showFeedback = true,
 }: MessageListProps) {
   const [feedbackState, setFeedbackState] = useState<Record<string, FeedbackRating | null>>({});
 
   const handleFeedback = async (messageId: string, rating: FeedbackRating) => {
+    if (!wid) return;
     // Optimistically update
     setFeedbackState((prev) => ({ ...prev, [messageId]: rating }));
 
@@ -103,6 +106,10 @@ export function MessageList({
             errorCopy = LockedCopy.LLM_UNAVAILABLE;
           } else if (msg.errorCode === 'RATE_LIMITED' || msg.content.includes('RATE_LIMITED')) {
             errorCopy = LockedCopy.RATE_LIMITED;
+          } else if (msg.errorCode === 'DEMO_LIMIT_REACHED' || msg.content.includes(LockedCopy.DEMO_LIMIT)) {
+            errorCopy = LockedCopy.DEMO_LIMIT;
+          } else if (msg.errorCode === 'WIDGET_LIMIT' || msg.content.includes(LockedCopy.WIDGET_LIMIT)) {
+            errorCopy = LockedCopy.WIDGET_LIMIT;
           } else {
             errorCopy = msg.content || LockedCopy.GENERIC_ERROR;
           }
@@ -167,7 +174,7 @@ export function MessageList({
               </div>
 
               {/* Feedback buttons (thumbs up / down) */}
-              {!isError && msg.status !== MessageStatus.STREAMING && (
+              {showFeedback && wid && !isError && msg.status !== MessageStatus.STREAMING && (
                 <div className="flex items-center gap-2 px-1">
                   <span className="text-xs text-gray-400 mr-1">Was this helpful?</span>
                   <button

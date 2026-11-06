@@ -139,7 +139,7 @@ export default function WorkspacesPage() {
                 <CardTitle className="text-base">Create Workspace</CardTitle>
                 <CardDescription>Start a new document workspace as admin</CardDescription>
               </CardHeader>
-              <form onSubmit={handleCreate}>
+              <form method="POST" onSubmit={handleCreate}>
                 <CardContent className="space-y-4">
                   {createError && (
                     <div

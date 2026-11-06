@@ -8,10 +8,13 @@ import { apiClient } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import { Button } from '@/components/ui/button';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
 interface CitationPanelProps {
-  wid: string;
+  wid?: string;
   citationId: string | null;
   onClose: () => void;
+  sessionToken?: string | null;
 }
 
 interface PassageResponse {
@@ -23,11 +26,26 @@ interface PassageResponse {
   text: string;
 }
 
-export function CitationPanel({ wid, citationId, onClose }: CitationPanelProps) {
+export function CitationPanel({ wid, citationId, onClose, sessionToken }: CitationPanelProps) {
   const { data, isLoading, isError } = useQuery<PassageResponse>({
-    queryKey: queryKeys.citations.passage(wid, citationId || ''),
-    queryFn: () => apiClient.get<PassageResponse>(`/workspaces/${wid}/citations/${citationId}/passage`),
-    enabled: Boolean(wid && citationId),
+    queryKey: sessionToken
+      ? ['public', 'citations', citationId || '']
+      : queryKeys.citations.passage(wid || '', citationId || ''),
+    queryFn: async () => {
+      if (sessionToken) {
+        const res = await fetch(`${API_BASE}/public/citations/${citationId}/passage`, {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        });
+        if (!res.ok) {
+          throw new Error('Citation unavailable');
+        }
+        return res.json();
+      }
+      return apiClient.get<PassageResponse>(`/workspaces/${wid}/citations/${citationId}/passage`);
+    },
+    enabled: Boolean(citationId && (wid || sessionToken)),
     retry: false,
   });
 

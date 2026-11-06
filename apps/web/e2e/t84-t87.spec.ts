@@ -124,6 +124,22 @@ test.describe('Phase 12: Web Documents and Chat (T-84..T-87)', () => {
     const match = page.url().match(/\/w\/([^/]+)/);
     const workspaceId = match ? match[1] : '';
 
+    // Upload a document first so chat has documents to answer from
+    await page.goto(`/w/${workspaceId}/admin/documents`);
+    await page.waitForLoadState('networkidle');
+
+    const sampleDoc = {
+      name: 'office-hours.md',
+      mimeType: 'text/markdown',
+      buffer: Buffer.from(
+        '# Office Policy\n\nWhat are standard office hours? Standard office hours are from 9am to 5pm on weekdays.\n\n## Operations\nOperations continue smoothly.',
+      ),
+    };
+    await page.locator('[data-testid="file-upload-input"]').setInputFiles(sampleDoc);
+    await expect(page.locator('tr:has-text("office-hours.md") [data-testid="status-ready"]')).toBeVisible({
+      timeout: 15000,
+    });
+
     // Go to Chat page
     await page.goto(`/w/${workspaceId}/chat`);
     await page.waitForLoadState('networkidle');
@@ -142,11 +158,11 @@ test.describe('Phase 12: Web Documents and Chat (T-84..T-87)', () => {
     await expect(page.locator('text=What are standard office hours?')).toBeVisible();
 
     // Fake provider answers token by token
-    await expect(page.locator('text=Answer based on the documents')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Answer based on the documents').first()).toBeVisible({ timeout: 10000 });
 
     // 3. Stop button visible while streaming and ANSWER_STOPPED shown after click
     // __SLOW__ emits a token every 100ms for 5s in fake provider
-    await chatInput.fill('Explain __SLOW__ process');
+    await chatInput.fill('What are standard office hours __SLOW__?');
     await sendBtn.click();
 
     const stopBtn = page.locator('[data-testid="stop-btn"]');
@@ -158,17 +174,17 @@ test.describe('Phase 12: Web Documents and Chat (T-84..T-87)', () => {
     await expect(page.locator(`text=${LockedCopy.ANSWER_STOPPED}`)).toBeVisible();
 
     // 4. __NO_ANSWER__ renders NO_ANSWER text
-    await chatInput.fill('Query with __NO_ANSWER__');
+    await chatInput.fill('What are standard office hours __NO_ANSWER__?');
     await sendBtn.click();
 
-    await expect(page.locator('[data-testid="no-answer-copy"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator(`text=${LockedCopy.NO_ANSWER}`)).toBeVisible();
+    await expect(page.locator('[data-testid="no-answer-copy"]').last()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(`text=${LockedCopy.NO_ANSWER}`).last()).toBeVisible();
 
     // 5. __FAIL__ shows LLM_UNAVAILABLE copy
-    await chatInput.fill('Question that causes __FAIL__');
+    await chatInput.fill('What are standard office hours __FAIL__?');
     await sendBtn.click();
 
-    await expect(page.locator('[data-testid="error-copy"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid="error-copy"]').last()).toBeVisible({ timeout: 10000 });
     await expect(page.locator(`text=${LockedCopy.LLM_UNAVAILABLE}`)).toBeVisible();
   });
 
@@ -288,6 +304,22 @@ test.describe('Phase 12: Web Documents and Chat (T-84..T-87)', () => {
     const match = page.url().match(/\/w\/([^/]+)/);
     const workspaceId = match ? match[1] : '';
 
+    // Upload a document first
+    await page.goto(`/w/${workspaceId}/admin/documents`);
+    await page.waitForLoadState('networkidle');
+
+    const sampleDoc = {
+      name: 'guide.md',
+      mimeType: 'text/markdown',
+      buffer: Buffer.from(
+        '# General Guide\n\nInitial question in chat one. Follow-up question in chat one. Question in chat two.',
+      ),
+    };
+    await page.locator('[data-testid="file-upload-input"]').setInputFiles(sampleDoc);
+    await expect(page.locator('tr:has-text("guide.md") [data-testid="status-ready"]')).toBeVisible({
+      timeout: 15000,
+    });
+
     // Go to Chat
     await page.goto(`/w/${workspaceId}/chat`);
     await page.waitForLoadState('networkidle');
@@ -314,7 +346,7 @@ test.describe('Phase 12: Web Documents and Chat (T-84..T-87)', () => {
     await chatInput.fill('Question in chat two');
     await sendBtn.click();
     await expect(page.locator('text=Question in chat two')).toBeVisible();
-    await expect(page.locator('text=Answer based on the documents')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Answer based on the documents').first()).toBeVisible({ timeout: 10000 });
 
     // Two chats appear in sidebar
     const chatItems = page.locator('[data-testid="chat-item"]');
