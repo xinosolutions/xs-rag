@@ -479,9 +479,7 @@ export class RagService {
           },
         });
         if (chatId) {
-          if (chatId) {
           await this.updateChatTitle(chatId, trimmedQuestion);
-        }
         }
       }
 
