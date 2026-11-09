@@ -35,6 +35,10 @@ describe('Phase 5: Ingestion Pipeline (T-32..T-37)', () => {
   let testServerPort: number;
 
   beforeAll(async () => {
+    if (process.env.TEST_DATABASE_URL) {
+      process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+    }
+
     testServer = http.createServer((req, res) => {
       if (req.url === '/page') {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
