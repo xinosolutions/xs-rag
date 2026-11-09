@@ -73,6 +73,9 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=768
 
+      - name: Generate Prisma Client
+        run: pnpm -F @xs-rag/api exec prisma generate
+
       - name: Run type checking
         run: pnpm typecheck
         env:
