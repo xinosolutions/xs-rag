@@ -295,6 +295,8 @@ jobs:
 
       - name: Apply migrations
         run: pnpm -F @xs-rag/api exec prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://xs:xs_dev@localhost:5432/xs_rag
 
       - name: Seed test data
         run: pnpm seed
