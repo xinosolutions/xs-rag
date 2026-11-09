@@ -29,6 +29,8 @@ import type {
   ResetPasswordDto,
 } from './auth.dto.js';
 
+const authLimit = parseInt(process.env.THROTTLE_AUTH_PER_MIN || '10', 10);
+
 @Controller('auth')
 @UseGuards(PrincipalGuard)
 export class AuthController {
@@ -50,7 +52,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Throttle({ default: { limit: authLimit, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
