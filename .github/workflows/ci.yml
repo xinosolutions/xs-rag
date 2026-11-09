@@ -222,6 +222,12 @@ jobs:
 
       - name: Run API E2E tests
         run: pnpm -F @xs-rag/api run test:e2e
+        env:
+          DATABASE_URL: postgresql://xs:xs_dev@localhost:5432/xs_rag
+          TEST_DATABASE_URL: postgresql://xs:xs_dev@localhost:5432/xs_rag_test
+          LLM_PROVIDER: fake
+          JWT_SECRET: super-secret-jwt-secret-min-32-chars-length
+          IP_HASH_SALT: random-ip-hash-salt-string
 
   playwright-e2e:
     name: Playwright E2E Tests
@@ -292,6 +298,9 @@ jobs:
 
       - name: Seed test data
         run: pnpm seed
+
+      - name: Build API and Web
+        run: pnpm build
 
       - name: Run Playwright tests
         run: pnpm -F @xs-rag/web run test:e2e
