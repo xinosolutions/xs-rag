@@ -112,6 +112,46 @@ pnpm lint
 
 ---
 
+## Continuous Integration
+
+XS-RAG uses GitHub Actions for automated testing and security scanning. The CI pipeline is optimized to run lightweight jobs on a self-hosted runner and resource-intensive jobs on GitHub-hosted runners.
+
+### CI Jobs
+
+**Self-Hosted Runner Jobs** (`[self-hosted, xs-rag]`):
+- **Lint**: Runs `oxlint` on API and Next.js ESLint on web
+- **Type Check**: TypeScript compilation check across all packages
+- **Unit Tests**: Vitest unit tests (API `*.spec.ts`)
+- **Build**: Full monorepo build including Prisma client generation
+
+**GitHub-Hosted Jobs** (`ubuntu-latest`):
+- **API E2E Tests**: Vitest e2e suite with Postgres + pgvector service container
+- **Playwright E2E Tests**: Web application end-to-end tests with seeded data
+- **CodeQL Analysis**: JavaScript/TypeScript security scanning
+- **Secret Scan**: Gitleaks scan on pull requests
+
+### Required Status Checks
+
+To enforce quality gates, mark these checks as required in branch protection settings:
+- `Lint`
+- `Type Check`
+- `Unit Tests`
+- `Build`
+- `API E2E Tests`
+- `Playwright E2E Tests`
+- `CodeQL Analysis`
+- `Gitleaks Secret Scan`
+
+### Branch Workflow
+
+- **Feature branches** → PR to `stage` (development integration)
+- **`stage`** → PR to `main` (production release)
+- Both `stage` and `main` require PR approval + passing CI
+
+CI runs on all pull requests and direct pushes to `stage` and `main`. A concurrency group automatically cancels superseded runs for the same PR or branch.
+
+---
+
 ## Architecture & Boundary Compliance
 
 Per the architectural specification and "Must Not Exist" rules:

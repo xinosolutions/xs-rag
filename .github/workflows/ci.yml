@@ -1,0 +1,289 @@
+name: CI
+
+on:
+  push:
+    branches: [stage, main]
+  pull_request:
+    branches: [stage, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: [self-hosted, xs-rag]
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          NODE_OPTIONS: --max-old-space-size=768
+
+      - name: Run linters
+        run: pnpm lint
+        env:
+          NODE_OPTIONS: --max-old-space-size=768
+
+  typecheck:
+    name: Type Check
+    runs-on: [self-hosted, xs-rag]
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          NODE_OPTIONS: --max-old-space-size=768
+
+      - name: Run type checking
+        run: pnpm typecheck
+        env:
+          NODE_OPTIONS: --max-old-space-size=768
+
+  unit-test:
+    name: Unit Tests
+    runs-on: [self-hosted, xs-rag]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          NODE_OPTIONS: --max-old-space-size=768
+
+      - name: Create test .env
+        run: |
+          cp .env.example .env
+          echo "LLM_PROVIDER=fake" >> .env
+
+      - name: Run unit tests
+        run: pnpm test
+        env:
+          NODE_OPTIONS: --max-old-space-size=768
+
+  build:
+    name: Build
+    runs-on: [self-hosted, xs-rag]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          NODE_OPTIONS: --max-old-space-size=768
+
+      - name: Create build .env
+        run: |
+          cp .env.example .env
+          echo "LLM_PROVIDER=fake" >> .env
+
+      - name: Generate Prisma Client
+        run: pnpm -F @xs-rag/api exec prisma generate
+
+      - name: Build all packages
+        run: pnpm build
+        env:
+          NODE_OPTIONS: --max-old-space-size=768
+
+  api-e2e:
+    name: API E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.0-pg16
+        env:
+          POSTGRES_USER: xs
+          POSTGRES_PASSWORD: xs_dev
+          POSTGRES_DB: xs_rag
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U xs -d xs_rag"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create pgvector extension and test database
+        run: |
+          PGPASSWORD=xs_dev psql -h localhost -U xs -d xs_rag -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          PGPASSWORD=xs_dev psql -h localhost -U xs -d xs_rag -c "CREATE DATABASE xs_rag_test;"
+          PGPASSWORD=xs_dev psql -h localhost -U xs -d xs_rag_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+      - name: Create test .env
+        run: |
+          cp .env.example .env
+          cat >> .env << 'EOF'
+          DATABASE_URL=postgresql://xs:xs_dev@localhost:5432/xs_rag
+          TEST_DATABASE_URL=postgresql://xs:xs_dev@localhost:5432/xs_rag_test
+          LLM_PROVIDER=fake
+          EOF
+
+      - name: Generate Prisma Client
+        run: pnpm -F @xs-rag/api exec prisma generate
+
+      - name: Apply migrations to test database
+        run: pnpm -F @xs-rag/api exec prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://xs:xs_dev@localhost:5432/xs_rag_test
+
+      - name: Run API E2E tests
+        run: pnpm -F @xs-rag/api run test:e2e
+
+  playwright-e2e:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.0-pg16
+        env:
+          POSTGRES_USER: xs
+          POSTGRES_PASSWORD: xs_dev
+          POSTGRES_DB: xs_rag
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U xs -d xs_rag"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm -F @xs-rag/web exec playwright install chromium --with-deps
+
+      - name: Create pgvector extension and test database
+        run: |
+          PGPASSWORD=xs_dev psql -h localhost -U xs -d xs_rag -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          PGPASSWORD=xs_dev psql -h localhost -U xs -d xs_rag -c "CREATE DATABASE xs_rag_test;"
+          PGPASSWORD=xs_dev psql -h localhost -U xs -d xs_rag_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+      - name: Create test .env
+        run: |
+          cp .env.example .env
+          cat >> .env << 'EOF'
+          DATABASE_URL=postgresql://xs:xs_dev@localhost:5432/xs_rag
+          TEST_DATABASE_URL=postgresql://xs:xs_dev@localhost:5432/xs_rag_test
+          LLM_PROVIDER=fake
+          EOF
+
+      - name: Generate Prisma Client
+        run: pnpm -F @xs-rag/api exec prisma generate
+
+      - name: Apply migrations
+        run: pnpm -F @xs-rag/api exec prisma migrate deploy
+
+      - name: Seed test data
+        run: pnpm seed
+
+      - name: Run Playwright tests
+        run: pnpm -F @xs-rag/web run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
