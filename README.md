@@ -140,7 +140,8 @@ To enforce quality gates, mark these checks as required in branch protection set
 - `API E2E Tests`
 - `Playwright E2E Tests`
 - `CodeQL Analysis`
-- `Gitleaks Secret Scan`
+
+**Note**: The `Gitleaks Secret Scan` check requires a license for organization repositories and will fail without one. It's configured with `continue-on-error: true` so it doesn't block PRs.
 
 ### Branch Workflow
 

@@ -68,6 +68,11 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=768
 
+      - name: Build shared package
+        run: pnpm -F @xs-rag/shared run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=768
+
       - name: Run type checking
         run: pnpm typecheck
         env:
@@ -101,6 +106,11 @@ jobs:
         run: |
           cp .env.example .env
           echo "LLM_PROVIDER=fake" >> .env
+
+      - name: Build shared package
+        run: pnpm -F @xs-rag/shared run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=768
 
       - name: Run unit tests
         run: pnpm test
@@ -199,6 +209,9 @@ jobs:
           LLM_PROVIDER=fake
           EOF
 
+      - name: Build shared package
+        run: pnpm -F @xs-rag/shared run build
+
       - name: Generate Prisma Client
         run: pnpm -F @xs-rag/api exec prisma generate
 
@@ -267,6 +280,9 @@ jobs:
           TEST_DATABASE_URL=postgresql://xs:xs_dev@localhost:5432/xs_rag_test
           LLM_PROVIDER=fake
           EOF
+
+      - name: Build shared package
+        run: pnpm -F @xs-rag/shared run build
 
       - name: Generate Prisma Client
         run: pnpm -F @xs-rag/api exec prisma generate
