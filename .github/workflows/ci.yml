@@ -300,6 +300,11 @@ jobs:
 
       - name: Seed test data
         run: pnpm seed
+        env:
+          DATABASE_URL: postgresql://xs:xs_dev@localhost:5432/xs_rag
+          LLM_PROVIDER: fake
+          JWT_SECRET: super-secret-jwt-secret-min-32-chars-length
+          IP_HASH_SALT: random-ip-hash-salt-string
 
       - name: Build API and Web
         run: pnpm build
