@@ -5,7 +5,7 @@ import { RetrievalService } from './retrieval.service.js';
 import { RagService } from './rag.service.js';
 import { FakeLlmProvider } from './llm/fake.provider.js';
 import { AnthropicProvider } from './llm/anthropic.provider.js';
-import { OpenAiProvider } from './llm/openai.provider.js';
+import { GeminiProvider } from './llm/gemini.provider.js';
 
 @Module({
   providers: [
@@ -15,14 +15,14 @@ import { OpenAiProvider } from './llm/openai.provider.js';
     RagService,
     FakeLlmProvider,
     AnthropicProvider,
-    OpenAiProvider,
+    GeminiProvider,
   ],
   exports: [
     RagService,
     RetrievalService,
     FakeLlmProvider,
     AnthropicProvider,
-    OpenAiProvider,
+    GeminiProvider,
   ],
 })
 export class RagModule {}

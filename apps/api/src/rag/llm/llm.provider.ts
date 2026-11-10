@@ -17,8 +17,11 @@ export interface LlmChatResult {
   completionTokens: number;
 }
 
+/** 'query' for search queries, 'document' for indexed chunks (providers may ignore it). */
+export type EmbedTaskType = 'query' | 'document';
+
 export interface LlmProvider {
-  embed(texts: string[]): Promise<number[][]>;
+  embed(texts: string[], taskType?: EmbedTaskType): Promise<number[][]>;
   streamChat(params: LlmCompletionParams): AsyncIterable<string>;
   chat(params: LlmCompletionParams): Promise<LlmChatResult>;
 }
