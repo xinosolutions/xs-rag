@@ -1,0 +1,18 @@
+[Unit]
+Description=XS RAG Web (Next.js)
+After=network-online.target xs-rag-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__DEPLOY_PATH__/apps/web
+EnvironmentFile=__DEPLOY_PATH__/.env
+Environment=NODE_OPTIONS=--max-old-space-size=256
+ExecStart=__NODE_BIN__ __DEPLOY_PATH__/apps/web/node_modules/next/dist/bin/next start -p __WEB_PORT__ -H 127.0.0.1
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:__DEPLOY_PATH__/logs/web.log
+StandardError=append:__DEPLOY_PATH__/logs/web.log
+
+[Install]
+WantedBy=default.target

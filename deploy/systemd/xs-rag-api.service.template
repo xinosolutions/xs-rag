@@ -1,0 +1,18 @@
+[Unit]
+Description=XS RAG API (NestJS)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__DEPLOY_PATH__/apps/api
+EnvironmentFile=__DEPLOY_PATH__/.env
+Environment=NODE_OPTIONS=--max-old-space-size=384
+ExecStart=__NODE_BIN__ __API_ENTRY__
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:__DEPLOY_PATH__/logs/api.log
+StandardError=append:__DEPLOY_PATH__/logs/api.log
+
+[Install]
+WantedBy=default.target
