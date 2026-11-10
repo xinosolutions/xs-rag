@@ -21,7 +21,7 @@ export const envSchema = z.object({
   LLM_PROVIDER: z.enum(['real', 'fake']).default('real'),
   ANTHROPIC_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
-  GEMINI_CHAT_MODEL: z.string().default('gemini-2.5-flash'),
+  GEMINI_CHAT_MODEL: z.string().default('gemini-3.5-flash'),
   GEMINI_EMBEDDING_MODEL: z.string().default('gemini-embedding-001'),
   GEMINI_THINKING_BUDGET: z.coerce.number().int().min(-1).default(0),
   DEFAULT_CHAT_MODEL: z.string().default('claude-sonnet-5-5'),
