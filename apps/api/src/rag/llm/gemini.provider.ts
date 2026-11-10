@@ -15,7 +15,8 @@ import {
  */
 export const EMBEDDING_DIMENSIONS = 1536;
 
-export const DEFAULT_GEMINI_CHAT_MODEL = 'gemini-2.5-flash';
+// gemini-2.5-flash is no longer offered to new API keys (404), so default to the 3.5 Flash line.
+export const DEFAULT_GEMINI_CHAT_MODEL = 'gemini-3.5-flash';
 export const DEFAULT_GEMINI_EMBEDDING_MODEL = 'gemini-embedding-001';
 
 export function l2Normalize(vector: number[]): number[] {

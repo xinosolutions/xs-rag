@@ -86,7 +86,7 @@ describe('GeminiProvider', () => {
   });
 
   it('streams text chunks from the configured chat model', async () => {
-    process.env.GEMINI_CHAT_MODEL = 'gemini-2.5-flash-lite';
+    process.env.GEMINI_CHAT_MODEL = 'gemini-3.5-flash-lite';
     generateContentStream.mockResolvedValue(
       (async function* () {
         yield { text: 'Hello' };
@@ -106,7 +106,7 @@ describe('GeminiProvider', () => {
     }
     expect(tokens.join('')).toBe('Hello world');
     const call = generateContentStream.mock.calls[0]![0];
-    expect(call.model).toBe('gemini-2.5-flash-lite');
+    expect(call.model).toBe('gemini-3.5-flash-lite');
     expect(call.config.systemInstruction).toBe('be brief');
     expect(call.config.thinkingConfig).toEqual({ thinkingBudget: 0 });
   });
@@ -121,6 +121,6 @@ describe('GeminiProvider', () => {
       messages: [{ role: 'user', content: 'judge' }],
     });
     expect(res).toEqual({ content: 'CORRECT', promptTokens: 12, completionTokens: 3 });
-    expect(generateContent.mock.calls[0]![0].model).toBe('gemini-2.5-flash');
+    expect(generateContent.mock.calls[0]![0].model).toBe('gemini-3.5-flash');
   });
 });
