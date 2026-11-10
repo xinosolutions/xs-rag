@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   AnswerOutcome,
@@ -87,6 +87,8 @@ export interface AskResult {
 
 @Injectable()
 export class RagService {
+  private readonly logger = new Logger(RagService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly retrievalService: RetrievalService,
@@ -581,10 +583,14 @@ export class RagService {
         }
         sink?.writeToken(heldBuffer);
       }
-    } catch {
+    } catch (err: unknown) {
       if (clientAborted || abortSignal?.aborted) {
         clientAborted = true;
       } else {
+        // Log the provider error (never includes the API key) so LLM_UNAVAILABLE is diagnosable.
+        this.logger.warn(
+          `LLM stream failed for model ${modelId}: ${(err as Error)?.message?.slice(0, 500) ?? String(err)}`,
+        );
         const totalMs = Date.now() - startTime;
         if (persist && assistantMessageId) {
           await this.prisma.message.update({

@@ -1,6 +1,7 @@
 // Pricing as of October 2026:
 // Anthropic: claude-3-5-sonnet: $3.00/MTok in, $15.00/MTok out; claude-3-5-haiku: $1.00/MTok in, $5.00/MTok out
-// Google Gemini: gemini-2.5-flash: $0.30/MTok in, $2.50/MTok out; gemini-embedding-001: $0.15/MTok
+// Google Gemini: Flash tier (GEMINI_CHAT_MODEL, default gemini-3.5-flash) ~$0.30/MTok in, ~$2.50/MTok out;
+// gemini-embedding-001: $0.15/MTok. Verify against current Google pricing when changing the model.
 
 export const GEMINI_FLASH_MODEL_ID = 'gemini-flash';
 export const FALLBACK_DEFAULT_MODEL_ID = 'claude-sonnet-5-5';
@@ -30,7 +31,7 @@ export const BASE_AI_MODELS: AiModelSpec[] = [
   },
   {
     // Stable catalog id; the concrete Gemini model comes from GEMINI_CHAT_MODEL
-    // (default gemini-2.5-flash), so upgrading the model needs no data migration.
+    // (default gemini-3.5-flash), so upgrading the model needs no data migration.
     id: GEMINI_FLASH_MODEL_ID,
     label: 'Gemini Flash',
     provider: 'gemini',
