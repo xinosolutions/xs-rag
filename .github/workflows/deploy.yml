@@ -22,7 +22,7 @@ permissions:
 jobs:
   deploy:
     name: Deploy to Hetzner (rag.xinosolutions.com)
-    runs-on: [self-hosted, xs-rag]
+    runs-on: [self-hosted, xs-rag, xino-hetzner]
     timeout-minutes: 40
     environment:
       name: production

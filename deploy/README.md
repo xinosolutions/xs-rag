@@ -11,7 +11,7 @@
 | Logs | `/home/github-runner/apps/xs-rag/logs/{api,web}.log` |
 
 Pushing to `main` runs `.github/workflows/deploy.yml` on the self-hosted runner
-labelled `xs-rag`, using the `production` GitHub environment. The workflow never
+labelled `xs-rag` + `xino-hetzner` (the Hetzner box; another runner also carries `xs-rag`), using the `production` GitHub environment. The workflow never
 runs on pull requests.
 
 ## GitHub `production` environment
