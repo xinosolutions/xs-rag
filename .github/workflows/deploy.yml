@@ -51,7 +51,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           IP_HASH_SALT: ${{ secrets.IP_HASH_SALT }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SEED_DEMO_ADMIN_PASSWORD: ${{ secrets.SEED_DEMO_ADMIN_PASSWORD }}
           # variables
           NODE_ENV: ${{ vars.NODE_ENV || 'production' }}
@@ -68,6 +68,10 @@ jobs:
           MAIL_FROM: ${{ vars.MAIL_FROM }}
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'real' }}
           EVAL_JUDGE_MODEL: ${{ vars.EVAL_JUDGE_MODEL }}
+          DEFAULT_CHAT_MODEL: ${{ vars.DEFAULT_CHAT_MODEL }}
+          GEMINI_CHAT_MODEL: ${{ vars.GEMINI_CHAT_MODEL }}
+          GEMINI_EMBEDDING_MODEL: ${{ vars.GEMINI_EMBEDDING_MODEL }}
+          GEMINI_THINKING_BUDGET: ${{ vars.GEMINI_THINKING_BUDGET }}
           RAG_MIN_SIMILARITY: ${{ vars.RAG_MIN_SIMILARITY }}
           INGESTION_WORKERS: ${{ vars.INGESTION_WORKERS }}
           THROTTLE_AUTH_PER_MIN: ${{ vars.THROTTLE_AUTH_PER_MIN }}

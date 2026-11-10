@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import OpenAI from 'openai';
 import { DocumentFailureCode } from '@xs-rag/shared';
 import { getEnv, Env } from '../config/env.js';
 import { FakeLlmProvider } from '../rag/llm/fake.provider.js';
+import { GeminiProvider } from '../rag/llm/gemini.provider.js';
 import { ChunkItem } from './chunker.js';
 import { IngestionError } from './extractors/web.extractor.js';
 
 @Injectable()
 export class Embedder {
-  private openai: OpenAI | null = null;
+  // Created lazily (not injected) so `new Embedder(fakeLlm)` in seed/tests keeps working.
+  private gemini: GeminiProvider | null = null;
 
   constructor(private readonly fakeLlmProvider: FakeLlmProvider) {}
 
@@ -39,16 +40,11 @@ export class Embedder {
           return await this.fakeLlmProvider.embed(batch);
         }
 
-        if (!this.openai) {
-          this.openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+        if (!this.gemini) {
+          this.gemini = new GeminiProvider();
         }
 
-        const response = await this.openai.embeddings.create({
-          model: 'text-embedding-3-small',
-          input: batch,
-        });
-
-        return response.data.map((item) => item.embedding);
+        return await this.gemini.embed(batch, 'document');
       } catch (err: unknown) {
         lastError = err;
         if (attempt < delays.length) {

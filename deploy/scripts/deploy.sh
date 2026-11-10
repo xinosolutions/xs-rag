@@ -28,10 +28,10 @@ if [ "${#JWT_SECRET}" -lt 32 ]; then echo "ERROR: JWT_SECRET must be at least 32
 if [ "${NODE_ENV:-production}" = "production" ] && [ "${LLM_PROVIDER:-real}" = "fake" ]; then
   echo "ERROR: LLM_PROVIDER=fake is rejected by the API in production"; exit 1
 fi
-if [ -z "${OPENAI_API_KEY:-}" ]; then
-  echo "WARNING: OPENAI_API_KEY is empty - document ingestion (embeddings) will fail until it is set."
+if [ -z "${GEMINI_API_KEY:-}" ]; then
+  echo "WARNING: GEMINI_API_KEY is empty - document ingestion (embeddings) will fail until it is set."
 fi
-if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${OPENAI_API_KEY:-}" ]; then
+if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${GEMINI_API_KEY:-}" ]; then
   echo "WARNING: no LLM API key set - chat answers will fail until one is set."
 fi
 
@@ -69,7 +69,11 @@ SMTP_PORT=${SMTP_PORT:-25}
 MAIL_FROM=${MAIL_FROM:-no-reply@xinosolutions.com}
 LLM_PROVIDER=${LLM_PROVIDER:-real}
 ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-OPENAI_API_KEY=${OPENAI_API_KEY:-}
+GEMINI_API_KEY=${GEMINI_API_KEY:-}
+GEMINI_CHAT_MODEL=${GEMINI_CHAT_MODEL:-gemini-2.5-flash}
+GEMINI_EMBEDDING_MODEL=${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+GEMINI_THINKING_BUDGET=${GEMINI_THINKING_BUDGET:-0}
+DEFAULT_CHAT_MODEL=${DEFAULT_CHAT_MODEL:-claude-sonnet-5-5}
 EVAL_JUDGE_MODEL=${EVAL_JUDGE_MODEL:-claude-sonnet-5-5}
 RAG_MIN_SIMILARITY=${RAG_MIN_SIMILARITY:-0.25}
 INGESTION_WORKERS=${INGESTION_WORKERS:-1}
