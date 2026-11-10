@@ -128,7 +128,10 @@ XS-RAG uses GitHub Actions for automated testing and security scanning. The CI p
 - **API E2E Tests**: Vitest e2e suite with Postgres + pgvector service container
 - **Playwright E2E Tests**: Web application end-to-end tests with seeded data
 - **CodeQL Analysis**: JavaScript/TypeScript security scanning
-- **Secret Scan**: Gitleaks scan on pull requests
+
+**Security Scanning**:
+- **GitHub Secret Scanning**: Native GitHub secret detection with push protection
+- **CodeQL**: Automated code security analysis for JavaScript/TypeScript
 
 ### Required Status Checks
 
@@ -140,8 +143,6 @@ To enforce quality gates, mark these checks as required in branch protection set
 - `API E2E Tests`
 - `Playwright E2E Tests`
 - `CodeQL Analysis`
-
-**Note**: The `Gitleaks Secret Scan` check requires a license for organization repositories and will fail without one. It's configured with `continue-on-error: true` so it doesn't block PRs.
 
 ### Branch Workflow
 
