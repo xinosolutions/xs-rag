@@ -1,4 +1,5 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
+import { getDefaultModelId } from '../config/ai-models.js';
 import { Prisma, EvalRunStatus, AnswerOutcome } from '@prisma/client';
 import { ErrorCode, Limits } from '@xs-rag/shared';
 import { PrismaService } from '../common/prisma.service.js';
@@ -227,7 +228,7 @@ export class EvalService {
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: wid },
     });
-    const modelId = workspace?.modelId || 'claude-sonnet-5-5';
+    const modelId = workspace?.modelId || getDefaultModelId();
     const judgeModelId = process.env.EVAL_JUDGE_MODEL || 'claude-sonnet-5-5';
 
     const run = await this.prisma.evalRun.create({

@@ -1,0 +1,90 @@
+name: Deploy Production
+
+# Deploys only from main (or a manual run). Never runs on pull_request,
+# so code from forks can never reach the self-hosted production runner.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_seed:
+        description: "Seed demo workspace data after migrations"
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Hetzner (rag.xinosolutions.com)
+    runs-on: [self-hosted, xs-rag, xino-hetzner]
+    timeout-minutes: 40
+    environment:
+      name: production
+      url: ${{ vars.WEB_ORIGIN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Deploy
+        env:
+          RUN_SEED: ${{ github.event.inputs.run_seed == 'true' && 'true' || vars.RUN_SEED || 'false' }}
+          # secrets
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          IP_HASH_SALT: ${{ secrets.IP_HASH_SALT }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SEED_DEMO_ADMIN_PASSWORD: ${{ secrets.SEED_DEMO_ADMIN_PASSWORD }}
+          # variables
+          NODE_ENV: ${{ vars.NODE_ENV || 'production' }}
+          API_PORT: ${{ vars.API_PORT || '1390' }}
+          WEB_PORT: ${{ vars.WEB_PORT || '1391' }}
+          DB_HOST_PORT: ${{ vars.DB_HOST_PORT || '5433' }}
+          WEB_ORIGIN: ${{ vars.WEB_ORIGIN }}
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          COOKIE_DOMAIN: ${{ vars.COOKIE_DOMAIN }}
+          TRUST_PROXY: ${{ vars.TRUST_PROXY || 'true' }}
+          STORAGE_DIR: ${{ vars.STORAGE_DIR }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          MAIL_FROM: ${{ vars.MAIL_FROM }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'real' }}
+          EVAL_JUDGE_MODEL: ${{ vars.EVAL_JUDGE_MODEL }}
+          DEFAULT_CHAT_MODEL: ${{ vars.DEFAULT_CHAT_MODEL }}
+          GEMINI_CHAT_MODEL: ${{ vars.GEMINI_CHAT_MODEL }}
+          GEMINI_EMBEDDING_MODEL: ${{ vars.GEMINI_EMBEDDING_MODEL }}
+          GEMINI_THINKING_BUDGET: ${{ vars.GEMINI_THINKING_BUDGET }}
+          RAG_MIN_SIMILARITY: ${{ vars.RAG_MIN_SIMILARITY }}
+          INGESTION_WORKERS: ${{ vars.INGESTION_WORKERS }}
+          THROTTLE_AUTH_PER_MIN: ${{ vars.THROTTLE_AUTH_PER_MIN }}
+          THROTTLE_ASK_PER_MIN: ${{ vars.THROTTLE_ASK_PER_MIN }}
+          V1_RATE_PER_MIN: ${{ vars.V1_RATE_PER_MIN }}
+          DEMO_WORKSPACE_SLUG: ${{ vars.DEMO_WORKSPACE_SLUG }}
+        run: bash deploy/scripts/deploy.sh
+
+      - name: Public URL check (non-fatal)
+        if: success()
+        env:
+          WEB_ORIGIN: ${{ vars.WEB_ORIGIN }}
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+        run: |
+          curl -fsS -o /dev/null "${NEXT_PUBLIC_API_URL}/health" && echo "API public OK" || echo "WARNING: ${NEXT_PUBLIC_API_URL} not reachable (DNS / nginx / SSL pending?)"
+          curl -fsS -o /dev/null "${WEB_ORIGIN}/" && echo "Web public OK" || echo "WARNING: ${WEB_ORIGIN} not reachable (DNS / nginx / SSL pending?)"

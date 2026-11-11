@@ -5,7 +5,7 @@ import { PrismaService } from '../common/prisma.service.js';
 import { ApiException } from '../common/error-envelope.filter.js';
 import { hashToken } from '../common/hash.js';
 import { parsePagination, encodeCursor, decodeCursor } from '../common/pagination.js';
-import { getModelCatalog } from '../config/ai-models.js';
+import { getModelCatalog, getDefaultModelId } from '../config/ai-models.js';
 import { MailService } from '../auth/mail.service.js';
 import type {
   CreateWorkspaceDto,
@@ -64,7 +64,7 @@ export class WorkspacesService {
       data: {
         name: trimmedName,
         slug: candidateSlug,
-        modelId: 'claude-sonnet-5-5',
+        modelId: getDefaultModelId(),
         createdById: userId,
         memberships: {
           create: {

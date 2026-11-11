@@ -1,0 +1,34 @@
+# Production database for xs-rag only (pgvector on Postgres 16).
+# Bound to 127.0.0.1 so it is never reachable from the internet.
+name: xs-rag
+services:
+  db:
+    image: pgvector/pgvector:0.8.0-pg16
+    container_name: xs-rag-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-xs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-xs_rag}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - max_connections=40
+      - -c
+      - work_mem=8MB
+    ports:
+      - "127.0.0.1:${DB_HOST_PORT:-5433}:5432"
+    volumes:
+      - xs-rag-pgdata:/var/lib/postgresql/data
+      - ../docker/initdb:/docker-entrypoint-initdb.d:ro
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-xs} -d ${POSTGRES_DB:-xs_rag}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+volumes:
+  xs-rag-pgdata:
+    name: xs-rag-pgdata

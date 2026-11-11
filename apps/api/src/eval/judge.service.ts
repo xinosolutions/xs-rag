@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { LlmProvider } from '../rag/llm/llm.provider.js';
 import { FakeLlmProvider } from '../rag/llm/fake.provider.js';
 import { AnthropicProvider } from '../rag/llm/anthropic.provider.js';
-import { OpenAiProvider } from '../rag/llm/openai.provider.js';
+import { GeminiProvider } from '../rag/llm/gemini.provider.js';
+import { getModelProviderName } from '../config/ai-models.js';
 import { CostCalculator } from '../rag/cost.js';
 import {
   ACCURACY_JUDGE_SYSTEM_PROMPT,
@@ -39,15 +40,15 @@ export class JudgeService {
   constructor(
     private readonly fakeLlmProvider: FakeLlmProvider,
     private readonly anthropicProvider: AnthropicProvider,
-    private readonly openAiProvider: OpenAiProvider,
+    private readonly geminiProvider: GeminiProvider,
   ) {}
 
   private getProvider(modelId: string): LlmProvider {
     if (process.env.LLM_PROVIDER === 'fake') {
       return this.fakeLlmProvider;
     }
-    if (modelId === 'gpt-4o-mini') {
-      return this.openAiProvider;
+    if (getModelProviderName(modelId) === 'gemini') {
+      return this.geminiProvider;
     }
     return this.anthropicProvider;
   }

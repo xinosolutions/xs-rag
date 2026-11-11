@@ -1,11 +1,15 @@
 // Pricing as of October 2026:
 // Anthropic: claude-3-5-sonnet: $3.00/MTok in, $15.00/MTok out; claude-3-5-haiku: $1.00/MTok in, $5.00/MTok out
-// OpenAI: gpt-4o-mini: $0.15/MTok in, $0.60/MTok out; text-embedding-3-small: $0.02/MTok
+// Google Gemini: Flash tier (GEMINI_CHAT_MODEL, default gemini-3.5-flash) ~$0.30/MTok in, ~$2.50/MTok out;
+// gemini-embedding-001: $0.15/MTok. Verify against current Google pricing when changing the model.
+
+export const GEMINI_FLASH_MODEL_ID = 'gemini-flash';
+export const FALLBACK_DEFAULT_MODEL_ID = 'claude-sonnet-5-5';
 
 export interface AiModelSpec {
   id: string;
   label: string;
-  provider: 'anthropic' | 'openai' | 'fake';
+  provider: 'anthropic' | 'gemini' | 'fake';
   inputUsdPerMTok: number;
   outputUsdPerMTok: number;
 }
@@ -26,11 +30,13 @@ export const BASE_AI_MODELS: AiModelSpec[] = [
     outputUsdPerMTok: 5.0,
   },
   {
-    id: 'gpt-4o-mini',
-    label: 'GPT-4o mini',
-    provider: 'openai',
-    inputUsdPerMTok: 0.15,
-    outputUsdPerMTok: 0.6,
+    // Stable catalog id; the concrete Gemini model comes from GEMINI_CHAT_MODEL
+    // (default gemini-3.5-flash), so upgrading the model needs no data migration.
+    id: GEMINI_FLASH_MODEL_ID,
+    label: 'Gemini Flash',
+    provider: 'gemini',
+    inputUsdPerMTok: 0.3,
+    outputUsdPerMTok: 2.5,
   },
 ];
 
@@ -53,5 +59,16 @@ export function getEmbeddingUsdPerMTok(isFakeProvider = false): number {
   if (isFakeProvider || process.env.LLM_PROVIDER === 'fake') {
     return 0.5;
   }
-  return 0.02; // text-embedding-3-small
+  return 0.15; // gemini-embedding-001
+}
+
+/** Model new workspaces start with (DEFAULT_CHAT_MODEL, must be a catalog id). */
+export function getDefaultModelId(): string {
+  return process.env.DEFAULT_CHAT_MODEL || FALLBACK_DEFAULT_MODEL_ID;
+}
+
+/** Which provider serves a catalog model id; unknown ids fall back to Anthropic as before. */
+export function getModelProviderName(modelId: string): AiModelSpec['provider'] {
+  const spec = [...BASE_AI_MODELS, FAKE_MODEL].find((m) => m.id === modelId);
+  return spec?.provider ?? 'anthropic';
 }

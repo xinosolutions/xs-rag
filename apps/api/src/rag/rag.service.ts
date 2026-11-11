@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   AnswerOutcome,
@@ -23,7 +23,8 @@ import { CostCalculator } from './cost.js';
 import { LlmProvider, LlmChatMessage } from './llm/llm.provider.js';
 import { FakeLlmProvider } from './llm/fake.provider.js';
 import { AnthropicProvider } from './llm/anthropic.provider.js';
-import { OpenAiProvider } from './llm/openai.provider.js';
+import { GeminiProvider } from './llm/gemini.provider.js';
+import { getDefaultModelId, getModelProviderName } from '../config/ai-models.js';
 
 export interface AskStreamSink {
   writeMeta(meta: {
@@ -86,20 +87,22 @@ export interface AskResult {
 
 @Injectable()
 export class RagService {
+  private readonly logger = new Logger(RagService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly retrievalService: RetrievalService,
     private readonly fakeLlmProvider: FakeLlmProvider,
     private readonly anthropicProvider: AnthropicProvider,
-    private readonly openAiProvider: OpenAiProvider,
+    private readonly geminiProvider: GeminiProvider,
   ) {}
 
   private getChatProvider(modelId: string): LlmProvider {
     if (process.env.LLM_PROVIDER === 'fake') {
       return this.fakeLlmProvider;
     }
-    if (modelId === 'gpt-4o-mini') {
-      return this.openAiProvider;
+    if (getModelProviderName(modelId) === 'gemini') {
+      return this.geminiProvider;
     }
     return this.anthropicProvider;
   }
@@ -108,7 +111,7 @@ export class RagService {
     if (process.env.LLM_PROVIDER === 'fake') {
       return this.fakeLlmProvider;
     }
-    return this.openAiProvider;
+    return this.geminiProvider;
   }
 
   async ask(options: AskOptions): Promise<AskResult | void> {
@@ -129,7 +132,7 @@ export class RagService {
       );
     }
 
-    let modelId = 'claude-sonnet-5-5';
+    let modelId = getDefaultModelId();
     let chat: any = null;
 
     let targetChatId = '';
@@ -186,12 +189,12 @@ export class RagService {
       const workspace = await this.prisma.workspace.findUnique({
         where: { id: chat.workspaceId },
       });
-      modelId = workspace?.modelId || 'claude-sonnet-5-5';
+      modelId = workspace?.modelId || getDefaultModelId();
     } else {
       const workspace = await this.prisma.workspace.findUnique({
         where: { id: principal.workspaceId },
       });
-      modelId = workspace?.modelId || 'claude-sonnet-5-5';
+      modelId = workspace?.modelId || getDefaultModelId();
     }
 
     const startTime = Date.now();
@@ -442,7 +445,7 @@ export class RagService {
 
     // Step 3: Embed search query
     const embeddingProvider = this.getEmbeddingProvider();
-    const [queryEmbedding] = await embeddingProvider.embed([searchText]);
+    const [queryEmbedding] = await embeddingProvider.embed([searchText], 'query');
     const embeddingTokens = Math.max(1, Math.ceil(searchText.length / 4));
 
     // Step 4 & 5: Retrieval & Relevance Gate
@@ -580,10 +583,14 @@ export class RagService {
         }
         sink?.writeToken(heldBuffer);
       }
-    } catch {
+    } catch (err: unknown) {
       if (clientAborted || abortSignal?.aborted) {
         clientAborted = true;
       } else {
+        // Log the provider error (never includes the API key) so LLM_UNAVAILABLE is diagnosable.
+        this.logger.warn(
+          `LLM stream failed for model ${modelId}: ${(err as Error)?.message?.slice(0, 500) ?? String(err)}`,
+        );
         const totalMs = Date.now() - startTime;
         if (persist && assistantMessageId) {
           await this.prisma.message.update({

@@ -56,6 +56,18 @@ XS-RAG is a production-grade multi-tenant RAG (Retrieval-Augmented Generation) d
 
 ---
 
+## AI Providers
+
+| Purpose | Provider / model | Env vars |
+|---|---|---|
+| Embeddings (ingestion + query) | Google Gemini `gemini-embedding-001`, 1536 dims (matches `vector(1536)`) | `GEMINI_API_KEY`, `GEMINI_EMBEDDING_MODEL` |
+| Chat / answers (`gemini-flash` catalog id) | Google Gemini `gemini-3.5-flash` by default | `GEMINI_CHAT_MODEL`, `GEMINI_THINKING_BUDGET` |
+| Chat (Claude catalog ids) | Anthropic | `ANTHROPIC_API_KEY` |
+| Default model for new workspaces | `DEFAULT_CHAT_MODEL` (`claude-sonnet-5-5` or `gemini-flash`) | `DEFAULT_CHAT_MODEL` |
+| Evaluation judge | `EVAL_JUDGE_MODEL` (any catalog id) | `EVAL_JUDGE_MODEL` |
+
+`LLM_PROVIDER=fake` swaps every provider for the deterministic fake used in tests (refused in production).
+
 ## Service URLs and Default Credentials
 
 | Service | URL | Notes |
