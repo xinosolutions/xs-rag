@@ -24,4 +24,70 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  .bg-infra-grid {
+    background-image:
+      linear-gradient(to right, rgba(30, 41, 59, 0.35) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(30, 41, 59, 0.35) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .bg-infra-dots {
+    background-image: radial-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+}
+
+@keyframes rag-scan-y {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.75;
+  }
+  85% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(420%);
+    opacity: 0;
+  }
+}
+
+@keyframes rag-dash-flow {
+  to {
+    stroke-dashoffset: -36;
+  }
+}
+
+@keyframes rag-pulse-subtle {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.12);
+  }
+}
+
+.animate-rag-scan {
+  animation: rag-scan-y 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-rag-dash {
+  animation: rag-dash-flow 1.8s linear infinite;
+}
+
+.animate-rag-pulse {
+  animation: rag-pulse-subtle 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rag-scan,
+  .animate-rag-dash,
+  .animate-rag-pulse {
+    animation: none !important;
+  }
 }
