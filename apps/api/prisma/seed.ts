@@ -21,6 +21,7 @@ import { RecoveryService } from '../src/ingestion/recovery.service.js';
 import { FakeLlmProvider } from '../src/rag/llm/fake.provider.js';
 import { hashPassword } from '../src/common/hash.js';
 import { getEnv } from '../src/config/env.js';
+import { getDefaultModelId } from '../src/config/ai-models.js';
 
 export interface SeedOptions {
   prisma?: PrismaService;
@@ -30,7 +31,7 @@ export interface SeedOptions {
 
 export interface SeedResult {
   adminUser: { id: string; email: string; name: string };
-  workspace: { id: string; name: string; slug: string; isDemo: boolean };
+  workspace: { id: string; name: string; slug: string; isDemo: boolean; modelId: string };
   documentsCount: number;
   evalQuestionsCount: number;
 }
@@ -87,15 +88,25 @@ export async function seed(options?: SeedOptions): Promise<SeedResult> {
       where: { slug: demoSlug },
     });
 
+    const defaultModelId = getDefaultModelId();
+
     if (!workspace) {
       workspace = await prisma!.workspace.create({
         data: {
           name: 'Acme Corp',
           slug: demoSlug,
           isDemo: true,
+          modelId: defaultModelId,
           createdById: adminUser.id,
           suggestedQuestions,
         },
+      });
+    } else if (workspace.modelId !== defaultModelId) {
+      // Demo workspace should follow the deployment default (e.g. gemini-flash
+      // when Anthropic is not configured). Re-running seed is idempotent.
+      workspace = await prisma!.workspace.update({
+        where: { id: workspace.id },
+        data: { modelId: defaultModelId },
       });
     }
 
@@ -332,6 +343,7 @@ export async function seed(options?: SeedOptions): Promise<SeedResult> {
         name: workspace.name,
         slug: workspace.slug,
         isDemo: workspace.isDemo,
+        modelId: workspace.modelId,
       },
       documentsCount,
       evalQuestionsCount,
@@ -366,6 +378,7 @@ if (isDirectExecution) {
         admin: result.adminUser.email,
         documents: result.documentsCount,
         evalQuestions: result.evalQuestionsCount,
+        modelId: result.workspace.modelId,
       });
       process.exit(0);
     })

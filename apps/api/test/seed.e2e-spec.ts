@@ -74,6 +74,9 @@ describe('Phase 10: Seed content and script (T-79)', () => {
     expect(demoWs).toBeDefined();
     expect(demoWs!.isDemo).toBe(true);
     expect(demoWs!.name).toBe('Acme Corp');
+    expect(demoWs!.modelId).toBe(
+      process.env.DEFAULT_CHAT_MODEL || 'claude-sonnet-5-5',
+    );
 
     // 4 suggested questions on demo workspace
     expect(demoWs!.suggestedQuestions).toHaveLength(4);
